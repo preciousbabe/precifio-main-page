@@ -1134,3 +1134,17 @@ body {
     .footer-grid { grid-template-columns: 1fr; }
     .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
 }
+
+/* ===== SURGICAL MOBILE FIXES ===== */
+@media (max-width: 768px) {
+    /* Roadmap: 3-col grid bleeds off-screen → stack to 1 column */
+    .roadmap-grid { grid-template-columns: 1fr; }
+    .roadmap-card { padding: 32px 24px; }
+    .roadmap-promise { padding: 32px 24px; }
+
+    /* Calculators: 4-col grid is unreadable on mobile → stack to 1 column */
+    .calculator-grid { grid-template-columns: 1fr; }
+
+    /* Tool capabilities: 2-col text cramps on small screens → stack to 1 column */
+    .tool-capabilities { grid-template-columns: 1fr; }
+}
