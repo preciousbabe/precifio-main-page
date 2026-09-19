@@ -1,0 +1,9 @@
+{
+  "name": "precifio-site",
+  "version": "1.0.0",
+  "description": "Precifio AI Solutions website",
+  "private": true,
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}
