@@ -136,9 +136,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify(data)
                 });
                 if (!res.ok) throw new Error('Request failed');
-                status.textContent = 'Thanks — your project brief was sent. We typically reply within 24 hours.';
-                status.classList.add('success');
-                form.reset();
+
+// Google Ads conversion — successful project brief submission
+if (typeof gtag === 'function') {
+    gtag('event', 'conversion', {
+        'send_to': 'AW-18465898424/aYgGCJ6NioAdELj_nOVE',
+        'value': 1.0,
+        'currency': 'USD'
+    });
+}
+
+status.textContent = 'Thanks — your project brief was sent. We typically reply within 24 hours.';
+status.classList.add('success');
+form.reset();
             } catch (err) {
                 // Fallback: open prefilled email so no lead is ever lost
                 const subject = encodeURIComponent('Project Inquiry — ' + (data.service || 'General'));
