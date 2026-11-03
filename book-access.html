@@ -1,0 +1,74 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="robots" content="noindex, nofollow">
+
+    <title>Your Ebook — Precifio Books</title>
+
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="books-store.css">
+</head>
+
+<body>
+
+    <main class="book-access-page">
+
+        <div class="book-access-card">
+
+            <img
+                src="assets/logo.png"
+                alt="Precifio"
+                class="book-access-logo"
+            >
+
+            <span class="book-checkout-label">
+                PRECIFIO BOOKS
+            </span>
+
+            <h1>Your Ebook Is Ready</h1>
+
+            <p id="accessMessage">
+                Verifying your purchase and preparing your secure download...
+            </p>
+
+            <div id="accessLoader" class="access-loader"></div>
+
+            <button
+                id="retryAccess"
+                type="button"
+                class="btn-primary"
+                hidden
+            >
+                Try Again
+            </button>
+
+            <p class="access-footer">
+                Your purchase is registered to one device.
+                Keep this browser's data intact to retain access.
+            </p>
+
+            <a href="books.html" class="access-back-link">
+                Return to Precifio Books
+            </a>
+
+        </div>
+
+    </main>
+
+    <script src="book-access.js"></script>
+
+</body>
+</html>
