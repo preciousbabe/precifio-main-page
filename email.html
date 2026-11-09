@@ -1,0 +1,254 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Precifio | Email Outreach</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 30px 16px;
+      background: #f4f6fa;
+      color: #172033;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      max-width: 850px;
+      margin: 30px auto;
+    }
+
+    .panel {
+      background: white;
+      border: 1px solid #e4e8ef;
+      border-radius: 14px;
+      padding: 26px;
+      box-shadow: 0 8px 30px rgba(20, 35, 60, .05);
+    }
+
+    h1 { margin: 0 0 8px; font-size: 25px; }
+    .muted { color: #697386; font-size: 14px; }
+
+    label {
+      display: block;
+      margin: 18px 0 7px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    input, select, textarea {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d8deea;
+      border-radius: 8px;
+      font: inherit;
+      background: white;
+      color: #172033;
+    }
+
+    textarea {
+      min-height: 190px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:disabled { opacity: .55; cursor: not-allowed; }
+
+    .primary {
+      background: #0056b3;
+      color: white;
+      margin-top: 20px;
+    }
+
+    .secondary {
+      background: #edf1f7;
+      color: #26344d;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .hidden { display: none !important; }
+
+    .notice {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      background: #f0f4fa;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .success { background: #eaf8ef; color: #176b35; }
+    .error { background: #fff0f0; color: #a32323; }
+
+    .lead-details {
+      margin-top: 12px;
+      padding: 13px;
+      background: #f7f9fc;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .login-panel {
+      max-width: 430px;
+      margin: 70px auto;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 12px; }
+      .panel { padding: 19px; }
+      .topbar { align-items: flex-start; }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+
+    <section id="loginPanel" class="panel login-panel hidden">
+      <h1>Precifio Email</h1>
+      <p class="muted">Sign in to manage prospect outreach.</p>
+
+      <form id="loginForm">
+        <label for="adminToken">Admin access token</label>
+        <input
+          id="adminToken"
+          type="password"
+          autocomplete="current-password"
+          required
+        >
+        <button class="primary" id="loginButton" type="submit">
+          Sign in
+        </button>
+      </form>
+
+      <div id="loginNotice" class="notice hidden"></div>
+    </section>
+
+    <section id="appPanel" class="panel hidden">
+      <div class="topbar">
+        <div>
+          <h1>Precifio Email Outreach</h1>
+          <p class="muted">Send and track emails to your saved prospects.</p>
+        </div>
+        <button id="logoutButton" class="secondary" type="button">
+          Sign out
+        </button>
+      </div>
+
+     
+<div class="topbar">
+  <span class="muted" id="leadCount">Loading prospects...</span>
+
+  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    <button id="addProspectButton" class="primary" type="button"
+      style="margin-top:0;">
+      + Add Prospect
+    </button>
+
+    <button id="refreshButton" class="secondary" type="button">
+      Refresh leads
+    </button>
+  </div>
+</div>
+
+
+
+<section id="addProspectPanel" class="lead-details hidden"
+  style="margin-bottom:20px; padding:18px;">
+
+  <h3 style="margin-top:0;">Add a new prospect</h3>
+  <p class="muted">Save a potential client to your Precifio leads.</p>
+
+  <form id="addProspectForm">
+    <label for="prospectName">Full name *</label>
+    <input id="prospectName" required maxlength="150"
+      placeholder="e.g. John Smith">
+
+    <label for="prospectEmail">Email address *</label>
+    <input id="prospectEmail" type="email" required maxlength="254"
+      placeholder="john@company.com">
+
+    <label for="prospectCompany">Company</label>
+    <input id="prospectCompany" maxlength="150"
+      placeholder="Company name">
+
+    <label for="prospectService">Service of interest</label>
+    <input id="prospectService" maxlength="200"
+      placeholder="e.g. AI automation, web development">
+
+    <label for="prospectNotes">Notes</label>
+    <textarea id="prospectNotes" rows="3"
+      placeholder="Where you found this prospect, what they need, or other useful details."
+      style="min-height:90px;"></textarea>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="primary" id="saveProspectButton" type="submit">
+        Save Prospect
+      </button>
+
+      <button class="secondary" id="cancelProspectButton" type="button">
+        Cancel
+      </button>
+    </div>
+  </form>
+
+  <div id="prospectNotice" class="notice hidden"></div>
+</section>
+
+
+      <form id="emailForm">
+        <label for="leadSelect">Select prospect</label>
+        <select id="leadSelect" required>
+          <option value="">Choose a prospect</option>
+        </select>
+
+        <div id="leadDetails" class="lead-details hidden"></div>
+
+        <label for="fromEmail">Send from</label>
+        <select id="fromEmail">
+          <option value="hello@precifio.app">hello@precifio.app</option>
+          <option value="support@precifio.app">support@precifio.app</option>
+        </select>
+
+        <label for="subject">Subject</label>
+        <input id="subject" maxlength="200" required>
+
+        <label for="bodyText">Message</label>
+        <textarea id="bodyText" required></textarea>
+
+        <button class="primary" id="sendButton" type="submit">
+          Send email
+        </button>
+      </form>
+
+      <div id="sendNotice" class="notice hidden"></div>
+    </section>
+
+  </main>
+
+  <script src="/email.js" defer></script>
+</body>
+</html>
