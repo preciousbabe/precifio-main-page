@@ -1,3 +1,4 @@
+
 document.addEventListener("DOMContentLoaded", () => {
     const modal = document.getElementById("bookCheckout");
     const form = document.getElementById("bookCheckoutForm");
@@ -14,15 +15,6 @@ document.addEventListener("DOMContentLoaded", () => {
         bookIdInput.value = bookId;
         bookTitle.textContent = title;
         errorBox.textContent = "";
-
-        // Default to Naira for visitors in Nigeria.
-        try {
-            const inNigeria = Intl.DateTimeFormat().resolvedOptions().timeZone === "Africa/Lagos";
-            const pick = document.querySelector(
-                `input[name="payCurrency"][value="${inNigeria ? "NGN" : "USD"}"]`
-            );
-            if (pick) pick.checked = true;
-        } catch (e) {}
 
         modal.classList.add("active");
         modal.setAttribute("aria-hidden", "false");
@@ -65,8 +57,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const bookId = bookIdInput.value;
         const email = emailInput.value.trim();
-        const currency =
-            document.querySelector('input[name="payCurrency"]:checked')?.value || "USD";
 
         if (!bookId || !email) {
             errorBox.textContent =
@@ -87,8 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     },
                     body: JSON.stringify({
                         bookId,
-                        email,
-                        currency
+                        email
                     })
                 }
             );
@@ -128,7 +117,11 @@ document.addEventListener("DOMContentLoaded", () => {
         statusBox.hidden = false;
         statusBox.classList.remove("error");
 
-        if (paymentStatus !== "successful" || !transactionId) {
+        if (
+            paymentStatus === "cancelled" ||
+            paymentStatus === "failed" ||
+            !transactionId
+        ) {
             statusBox.classList.add("error");
             statusBox.textContent =
                 "Payment was not completed. You can return to the books page and try again.";

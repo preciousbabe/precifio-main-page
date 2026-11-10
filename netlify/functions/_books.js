@@ -226,6 +226,112 @@ async function verifyFlutterwave(transactionId) {
   return result.data;
 }
 
+function codedError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+// Checks that Flutterwave's record matches our order exactly.
+function isPaymentValid(order, payment) {
+  const returnedEmail = String(payment.customer?.email || "")
+    .trim()
+    .toLowerCase();
+
+  return (
+    payment.tx_ref === order.tx_ref &&
+    payment.status === "successful" &&
+    String(payment.currency).toUpperCase() === order.currency &&
+    Number(payment.amount) >= Number(order.amount) &&
+    (!returnedEmail || returnedEmail === order.email.toLowerCase())
+  );
+}
+
+// Shared by the return page (book-verify) and the webhook (book-webhook).
+// Safe to call many times and from both at once: the order is marked paid
+// once, and the access email is sent once.
+async function confirmPaymentAndDeliver(supabase, order, payment) {
+  if (!isPaymentValid(order, payment)) {
+    throw codedError("PAYMENT_MISMATCH", "Payment does not match order.");
+  }
+
+  const sameTx = row =>
+    !row.flutterwave_transaction_id ||
+    String(row.flutterwave_transaction_id) === String(payment.id);
+
+  if (!sameTx(order)) {
+    throw codedError("DIFFERENT_PAYMENT", "Order has a different payment.");
+  }
+
+  if (order.status === "pending") {
+    const { error } = await supabase
+      .from("book_orders")
+      .update({
+        status: "paid",
+        flutterwave_transaction_id: String(payment.id),
+        paid_at: new Date().toISOString()
+      })
+      .eq("id", order.id)
+      .eq("status", "pending");
+
+    if (error) {
+      console.error("Order update error:", error);
+      throw codedError("ACTIVATION_FAILED", "Could not activate order.");
+    }
+  }
+
+  const { data: fresh } = await supabase
+    .from("book_orders")
+    .select("*")
+    .eq("id", order.id)
+    .single();
+
+  if (!fresh || fresh.status !== "paid") {
+    throw codedError("ACTIVATION_FAILED", "Could not activate order.");
+  }
+
+  if (!sameTx(fresh)) {
+    throw codedError("DIFFERENT_PAYMENT", "Order has a different payment.");
+  }
+
+  if (fresh.access_email_sent_at) {
+    return { alreadySent: true };
+  }
+
+  // Claim the email so only one request sends it.
+  const { data: claimed, error: claimError } = await supabase
+    .from("book_orders")
+    .update({ access_email_sent_at: new Date().toISOString() })
+    .eq("id", fresh.id)
+    .is("access_email_sent_at", null)
+    .select("id")
+    .maybeSingle();
+
+  if (claimError) {
+    throw codedError("EMAIL_FAILED", "Could not prepare email.");
+  }
+
+  if (!claimed) {
+    return { alreadySent: true };
+  }
+
+  try {
+    await sendAccessEmail(fresh);
+  } catch (emailError) {
+    console.error("Book delivery email error:", emailError);
+
+    // Release the claim so a retry can send it again.
+    await supabase
+      .from("book_orders")
+      .update({ access_email_sent_at: null })
+      .eq("id", fresh.id);
+
+    throw codedError("EMAIL_FAILED", "Could not send access email.");
+  }
+
+  return { alreadySent: false };
+}
+
 module.exports = {
   BOOKS,
   getSupabase,
@@ -235,5 +341,6 @@ module.exports = {
   createAccessToken,
   verifyAccessToken,
   sendAccessEmail,
-  verifyFlutterwave
+  verifyFlutterwave,
+  confirmPaymentAndDeliver
 };

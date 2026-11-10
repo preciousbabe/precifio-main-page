@@ -1,3 +1,4 @@
+
 const {
   BOOKS,
   getSupabase,
@@ -7,48 +8,13 @@ const {
 
 const crypto = require("crypto");
 
-// Asks Flutterwave what `amount` of `from` is worth in `to`.
-// Returns the converted amount as a number, or null on any failure.
-async function getConvertedAmount(from, to, amount) {
-  try {
-    const response = await fetch(
-      `https://api.flutterwave.com/v3/transfers/rates?amount=${amount}&source_currency=${from}&destination_currency=${to}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-
-    const body = await response.json();
-
-    if (!response.ok || body.status !== "success") {
-      console.error("Flutterwave rate lookup failed:", body);
-      return null;
-    }
-
-    const destination = Number(body.data?.destination?.amount);
-    if (Number.isFinite(destination) && destination > 0) return destination;
-
-    const rate = Number(body.data?.rate);
-    if (Number.isFinite(rate) && rate > 0) return amount * rate;
-
-    return null;
-  } catch (error) {
-    console.error("Flutterwave rate lookup error:", error);
-    return null;
-  }
-}
-
 exports.handler = async event => {
   if (event.httpMethod !== "POST") {
     return json(405, { error: "Method not allowed." });
   }
 
   try {
-    const { bookId, email, currency: requestedCurrency } = parseBody(event);
+    const { bookId, email } = parseBody(event);
 
     const book = BOOKS[bookId];
 
@@ -66,48 +32,6 @@ exports.handler = async event => {
       return json(400, { error: "Enter a valid email address." });
     }
 
-    // Price is fixed in USD. Customers may pay in USD or in NGN,
-    // where the NGN amount is converted from the USD price.
-    const currency = String(requestedCurrency || "USD").toUpperCase();
-
-    if (!["USD", "NGN"].includes(currency)) {
-      return json(400, { error: "Unsupported currency." });
-    }
-
-    let chargeAmount = book.price;
-
-    if (currency === "NGN") {
-      const fallbackRate = Number(process.env.USD_NGN_RATE);
-      const hasFallback = Number.isFinite(fallbackRate) && fallbackRate > 0;
-
-      // Prefer Flutterwave's live rate; fall back to USD_NGN_RATE if set.
-      let converted = await getConvertedAmount("USD", "NGN", book.price);
-
-      // Sanity check: ignore a live rate that is wildly different
-      // from the fallback rate (guards against bad API data).
-      if (converted && hasFallback) {
-        const expected = book.price * fallbackRate;
-        if (converted < expected * 0.7 || converted > expected * 1.3) {
-          console.error("Live NGN rate looks off:", { converted, expected });
-          converted = null;
-        }
-      }
-
-      if (!converted && hasFallback) {
-        converted = book.price * fallbackRate;
-      }
-
-      if (!converted) {
-        console.error("No usable USD->NGN rate available.");
-        return json(500, {
-          error: "Naira payment is temporarily unavailable. Please pay in USD."
-        });
-      }
-
-      // Round up to the nearest N50 for a clean amount.
-      chargeAmount = Math.ceil(converted / 50) * 50;
-    }
-
     const supabase = getSupabase();
 
     const txRef = `PRECIFIO-BOOK-${crypto.randomUUID()}`;
@@ -118,8 +42,8 @@ exports.handler = async event => {
         book_id: bookId,
         book_title: book.title,
         email: customerEmail,
-        amount: chargeAmount,
-        currency,
+        amount: book.price,
+        currency: book.currency,
         tx_ref: txRef,
         status: "pending"
       })
@@ -145,12 +69,8 @@ exports.handler = async event => {
         },
         body: JSON.stringify({
           tx_ref: txRef,
-          amount: chargeAmount,
-          currency,
-          payment_options:
-            currency === "NGN"
-              ? "card,banktransfer,ussd"
-              : "card",
+          amount: book.price,
+          currency: book.currency,
           redirect_url: `${siteUrl}/books.html`,
           customer: {
             email: customerEmail

@@ -1,12 +1,12 @@
-
 const {
   getSupabase,
   json,
   parseBody,
   verifyFlutterwave,
-  sendAccessEmail
+  confirmPaymentAndDeliver
 } = require("./_books");
 
+// Called by books.html when the buyer returns from Flutterwave.
 exports.handler = async event => {
   if (event.httpMethod !== "POST") {
     return json(405, { error: "Method not allowed." });
@@ -37,97 +37,37 @@ exports.handler = async event => {
       return json(400, { error: "This order is no longer valid." });
     }
 
-    // Independently verify the transaction with Flutterwave.
+    // Ask Flutterwave directly. Never trust the browser.
     const payment = await verifyFlutterwave(transaction_id);
 
-    const correctReference = payment.tx_ref === order.tx_ref;
-    const correctStatus = payment.status === "successful";
-    const correctCurrency =
-      String(payment.currency).toUpperCase() === order.currency;
+    try {
+      await confirmPaymentAndDeliver(supabase, order, payment);
+    } catch (err) {
+      if (err.code === "PAYMENT_MISMATCH") {
+        return json(400, {
+          error: "Payment could not be confirmed. Please contact support if you were charged."
+        });
+      }
 
-    const correctAmount =
-      Number(payment.amount) >= Number(order.amount);
+      if (err.code === "DIFFERENT_PAYMENT") {
+        return json(400, {
+          error: "This order is associated with a different payment."
+        });
+      }
 
-    const returnedEmail = String(
-      payment.customer?.email || ""
-    ).trim().toLowerCase();
+      if (err.code === "EMAIL_FAILED") {
+        return json(502, {
+          error: "Your payment is confirmed, but we could not send the access email. Please refresh to retry or contact hello@precifio.app."
+        });
+      }
 
-    const correctEmail =
-      !returnedEmail || returnedEmail === order.email.toLowerCase();
-
-    if (
-      !correctReference ||
-      !correctStatus ||
-      !correctCurrency ||
-      !correctAmount ||
-      !correctEmail
-    ) {
-      console.error("Payment validation mismatch:", {
-        correctReference,
-        correctStatus,
-        correctCurrency,
-        correctAmount,
-        correctEmail
-      });
-
-      return json(400, {
-        error: "Payment could not be confirmed. Please contact support if you were charged."
-      });
-    }
-
-    // Mark the order as paid.
-    if (order.status !== "paid") {
-      const { error: updateError } = await supabase
-        .from("book_orders")
-        .update({
-          status: "paid",
-          flutterwave_transaction_id: String(payment.id),
-          paid_at: new Date().toISOString()
-        })
-        .eq("id", order.id)
-        .eq("status", "pending");
-
-      if (updateError) {
-        console.error("Order update error:", updateError);
-
+      if (err.code === "ACTIVATION_FAILED") {
         return json(500, {
           error: "Payment was verified but purchase activation failed. Contact support."
         });
       }
 
-      // Confirm that the update succeeded or another request
-      // already completed the same order.
-      const { data: updatedOrder } = await supabase
-        .from("book_orders")
-        .select("status")
-        .eq("id", order.id)
-        .single();
-
-      if (updatedOrder?.status !== "paid") {
-        return json(500, {
-          error: "Could not activate your purchase."
-        });
-      }
-    } else if (
-      order.flutterwave_transaction_id &&
-      String(order.flutterwave_transaction_id) !== String(payment.id)
-    ) {
-      return json(400, {
-        error: "This order is associated with a different payment."
-      });
-    }
-
-    // The signed access link is deterministic for this order.
-    // Therefore, the email can be sent again if the customer
-    // retries this verification after an email delivery failure.
-    try {
-      await sendAccessEmail(order);
-    } catch (emailError) {
-      console.error("Book delivery email error:", emailError);
-
-      return json(502, {
-        error: "Your payment is confirmed, but we could not send the access email. Please retry verification or contact hello@precifio.app."
-      });
+      throw err;
     }
 
     return json(200, {
