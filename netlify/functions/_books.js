@@ -27,14 +27,20 @@ const BOOKS = {
 };
 
 function getSupabase() {
-  if (!process.env.SUPABASE_URL ||
-      !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  const url =
+    process.env.BOOKS_SUPABASE_URL || process.env.SUPABASE_URL;
+
+  const key =
+    process.env.BOOKS_SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
     throw new Error("Supabase environment variables are missing.");
   }
 
   return createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    url,
+    key,
     {
       auth: {
         autoRefreshToken: false,
@@ -135,7 +141,7 @@ async function sendAccessEmail(order) {
   }
 
   const siteUrl = (
-    process.env.SITE_URL || "https://precifio.app"
+    process.env.BOOKS_SITE_URL || "https://precifio.app"
   ).replace(/\/$/, "");
 
   const token = createAccessToken(order);

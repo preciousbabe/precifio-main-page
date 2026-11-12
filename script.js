@@ -55,6 +55,45 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('[data-nav="resources"]').forEach(link => link.classList.add('active'));
         }
     }
+    
+    
+
+    // ===== RESOURCES DROPDOWN =====
+    document.querySelectorAll('.nav-dropdown').forEach(dropdown => {
+        const trigger = dropdown.querySelector('[data-nav="resources"]');
+
+        if (!trigger) return;
+
+        trigger.setAttribute('href', '#');
+        trigger.setAttribute('role', 'button');
+        trigger.setAttribute('aria-haspopup', 'true');
+        trigger.setAttribute('aria-expanded', 'false');
+
+        trigger.addEventListener('click', (e) => {
+            e.preventDefault();
+
+            const isOpen = dropdown.classList.toggle('open');
+
+            trigger.setAttribute('aria-expanded', String(isOpen));
+        });
+
+        // Close when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('open');
+                trigger.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        // Close with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                dropdown.classList.remove('open');
+                trigger.setAttribute('aria-expanded', 'false');
+            }
+        });
+    });
+
 
     // ===== FAQ ACCORDION =====
     document.querySelectorAll('.faq-q').forEach(btn => {
